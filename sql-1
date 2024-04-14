@@ -1,0 +1,62 @@
+SELECT DISTINCT group_or_stage,
+ 		nation_name
+ FROM (
+ 	SELECT group_or_stage,
+ 		nation_name
+ 	FROM wc_2018.game gam
+ 	INNER JOIN wc_2018.nation nat_a on gam.a_nation_id = nat_a.nation_id
+ 	WHERE group_or_stage LIKE 'Group%'
+UNION ALL
+	sELECT group_or_stage,
+ 		nation_name
+ 	FROM wc_2018.game gam
+ 	INNER JOIN wc_2018.nation nat_b on gam.b_nation_id = nat_b.nation_id
+ 	WHERE group_or_stage LIKE 'Group%'
+) participants 
+ORDER BY group_or_stage, nation_name;
+ 
+SELECT * FROM wc_2018.game g WHERE a_nation_id = '1'
+
+
+SELECT DISTINCT
+    gam.group_or_stage,
+    COALESCE(nat_a.nation_name, nat_b.nation_name) AS nation_name
+FROM
+    wc_2018.game gam
+LEFT JOIN wc_2018.nation nat_a ON gam.a_nation_id = nat_a.nation_id
+LEFT JOIN wc_2018.nation nat_b ON gam.b_nation_id = nat_b.nation_id
+WHERE
+    gam.group_or_stage LIKE 'Group%'
+ORDER BY
+    gam.group_or_stage,
+    nation_name;
+    
+   
+SELECT gam.group_or_stage,
+        count(*) AS number_of_goals
+FROM wc_2018.goal g 
+INNER JOIN wc_2018.game gam ON gam.game_id = g.game_id
+WHERE gam.group_or_stage LIKE 'Group%'
+GROUP BY gam.group_or_stage 
+HAVING count(*) > 14
+ORDER BY number_of_goals DESC 
+
+
+SELECT nation_name,
+	     stage,
+	     total_goals
+FROM  (
+      SELECT nation_name,
+             CASE WHEN group_or_stage like 'Group%' then 'Group' ELSE group_or_stage END AS stage,
+             COUNT(*) AS total_goals,
+             RANK() OVER(PARTITION BY
+                         CASE WHEN group_or_stage LIKE 'Group%'
+                         THEN 'Group'
+                         ELSE group_or_stage
+                         END ORDER BY count(*) DESC) AS rk
+      FROM wc_2018.goal gol
+      INNER JOIN wc_2018.game gam ON gam.game_id = gol.game_id
+      INNER JOIN wc_2018.nation nat ON nat.nation_id = gol.goal_nation_id
+      GROUP BY nation_name, CASE WHEN group_or_stage LIKE 'Group%' THEN 'Group' ELSE group_or_stage END
+      ) ranking
+WHERE rk = 1;
